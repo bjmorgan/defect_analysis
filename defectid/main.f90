@@ -32,10 +32,10 @@ interface
 
 end interface
 
-inptfile = 'defect_new.inpt'
-poly_out = 'sites_atoms.dat'
+inptfile  = 'defect_new.inpt'
+poly_out  = 'sites_atoms.dat'
 atoms_out = 'atoms_sites.dat'
-npolyocc = 'npolyocc.dat'
+npolyocc  = 'npolyocc.dat'
 
 open(file=inptfile, status='old', newunit=fin)
 read(fin,*) posfile
@@ -68,8 +68,8 @@ call setup_oct(octa, noct)
 
 natomsout = sum(nsp) - nsp(lattice_spec) ! mobile atoms are assumed to be those not defining lattice sites
 
-allocate(polylist(natomsout))
-allocate(sitelist(ntet+noct))
+allocate( polylist( natomsout ) )
+allocate( sitelist( ntet+noct ) )
  
 ! read in ids for tetrahedra vertices
 open(file=tetfile, status='old', newunit=fin)
@@ -85,10 +85,10 @@ do i=1, noct
 enddo
 close(fin)
 
-open(file=posfile, status='old', newunit=fin)
-open(file=npolyocc, newunit=fout1)
-open(file=atoms_out, newunit=fout2)
-open(file=poly_out, newunit=fout3)
+open( file = posfile, status='old', newunit=fin )
+open( file = npolyocc,  newunit=fout1 )
+open( file = atoms_out, newunit=fout2 )
+open( file = poly_out,  newunit=fout3 )
 
 do nstep=1, nconfigs
 
