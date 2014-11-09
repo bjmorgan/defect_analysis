@@ -17,12 +17,14 @@ integer, dimension(:), allocatable :: v_mask, v_index
 integer, dimension(6) :: v_list
 type(atom), dimension(6) :: p_list
 double precision, dimension(2) :: rcut, rcutsq ! minimum, maximum
-double precision :: rij(3), rijsq
+double precision :: rij(3), rij_direct(3), rijsq
 logical, dimension(:), allocatable :: pair_list
 integer, dimension(1) :: opp_ion
 double precision, dimension(:), allocatable :: rijsq_store
 integer, dimension(13) :: nearest_neighbours
 logical :: close_packed_lattice
+integer :: ntet_max, noct_max
+type(atom), dimension(4) :: equatorial_vertices
 
 interface
 
@@ -67,10 +69,12 @@ boxlen = cboxlen * diagonal(h)
 halfboxlen = boxlen/2
 halfcboxlen = boxlen/2 !warning. Should this be cboxlen/2?
 
+noct_max = natoms
+ntet_max = natoms*2
+
 allocate( part(natoms) )
-!allocate( octa(natoms) ) ! TODO: can this be allocatable?
-allocate( octa(10000) ) ! TODO: can this be allocatable?
-allocate( tetra(natoms*2) )
+allocate( octa( noct_max ) )
+allocate( tetra( ntet_max ) ) 
 allocate( pair_list(natoms), v_mask(natoms), v_index(natoms) )
 allocate( rijsq_store( natoms ) )
 
@@ -89,11 +93,13 @@ end forall
 
 forall (i=1:natoms) v_index(i) = i
 
+write( 6,* ) 'Creating neighbour lists'
 ! create neighbour list
 ! assuming the input file is in lab coordinates
 do i=1, natoms
     do j=1, natoms
-        rij = r_as_minimum_image( dr( part(i)%r, part(j)%r ) )
+        rij_direct = dr( part(i)%r, part(j)%r )
+        rij = r_as_minimum_image( rij_direct )
         rijsq_store(j) = sum( rij * rij )
     end do
     if (close_packed_lattice) then
@@ -106,8 +112,7 @@ do i=1, natoms
     else
 ! if the lattice is *not* close-packed, we use rcut(min, max) to define
 ! neighbour lists
-        part(i)%neigh = ( rijsq_store >= rcutsq(1) .and. rijsq_store <= rcutsq(2) )
-!         part(i)%neigh(i) = .true.
+        part(i)%neigh = ( rijsq_store <= rcutsq(2) )
     end if
 end do
 
@@ -121,9 +126,10 @@ do i=1, natoms
     call part(i)%set_neighbour_ids
 end do
 
+write(6,*) 'searching for tetrahedra'
 !find tetrahedra
 !tetrahedra are defined by sets of four atoms, where any triplet are neighbours of the fourth
-do i=1, natoms-3
+do i=1, natoms-3   
     do j=i+1, natoms-2
         if ( .not.part(j)%neigh(i) )cycle
         do k=j+1, natoms-1
@@ -136,6 +142,9 @@ do i=1, natoms-3
                 pair_list(k) = .true.
                 pair_list(l) = .true.
                 ntet = ntet + 1
+                if ( ntet > ntet_max ) then
+                    stop( 'Found too many tetrahedra. Maybe decrease the cutoff?')
+                end if
                 associate( tet => tetra(ntet) )
                     call tet%init
                     call tet%set_vertices( pack(part, pair_list) )
@@ -145,8 +154,9 @@ do i=1, natoms-3
     end do
 end do
 
+write(6,*) 'searching for octahedra'
 ! find octahedra, list of ions are arranged in pairs of opposite vertices (1,2)(3,4)(5,6)
-do i=1, natoms-1
+do i=1, natoms-1 
     do j=i+1, natoms
         if ( part(i)%neigh(j) ) cycle
         pair_list = ( part(i)%neigh .and. part(j)%neigh )
@@ -155,12 +165,21 @@ do i=1, natoms-1
             v_list(2) = j
             v_list(3:6) = pack( v_index, pair_list )
             opp_ion = pack( (/4,5,6/) ,.not.part( v_list(3) )%neigh( v_list(4:6) ) )
+            if ( all( (/4,5,6/) .ne. opp_ion(1) ) ) then ! octahedron is probably constructed from four face-sharing tetrahedra
+                write(6,*) "Opposing vertices in this octahedron are too close"
+                write(6,*) "Ions: ", v_list
+                stop
+            end if
             call swap(v_list, 4, opp_ion(1))
-            ! test that all points are topologically equivalent
+            ! test that all points are topologically equivalent (if not, assume
+            ! we have a false positive identification)
             if (     count( part(v_list(3))%neigh(v_list) .and. part(v_list(4))%neigh(v_list) ) /= 4 &
-                .or. count( part(v_list(5))%neigh(v_list) .and. part(v_list(6))%neigh(v_list) ) /= 4 ) cycle
+                .or. count( part(v_list(5))%neigh(v_list) .and. part(v_list(6))%neigh(v_list) ) /= 4 ) cycle 
             if ( .not. oct_exists( v_list, octa( 1:noct ) ) ) then
                 noct = noct + 1
+                if ( noct > noct_max ) then
+                    stop( 'Found too many octahedra. Maybe decrease the cutoff?' )
+                end if
                 associate( oct => octa(noct) )
                     call oct%init
                     p_list = part( v_list )
@@ -171,8 +190,8 @@ do i=1, natoms-1
     end do
 end do
 
-write(6,*) noct,"octahedra found"
-write(6,*) ntet,"tetrahedra found"
+write(6,*) ntet, 'tetrahedra found'
+write(6,*) noct, 'octahedra found'
 
 do i=1, ntet
     call tetra(i)%enforce_pbc
@@ -315,6 +334,5 @@ function minimum_locations_from_array( array, number_of_values )
         minimum_locations_from_array(i) = minloc(array, 1, mask )
         mask( minloc( array, 1, mask ) ) = .false.
     end do    
-
 end function minimum_locations_from_array
 
