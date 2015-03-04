@@ -108,3 +108,4 @@ chains.sort.each{ |chain| puts "(#{chain.duration}) #{chain.output}" }
 
 chains_out = File.new( "chains.out", 'w' )
 distribution_of( chains ).sort.each{ |size,number| chains_out.puts "#{size} #{number}"}
+

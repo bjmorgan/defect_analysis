@@ -28,7 +28,7 @@ module octahedra
 
     subroutine oct_assign_faces( this ) ! vertices are arranged in opposite pairs: (1,2)(3,4)(5,6)
         class(octahedron) :: this
-        integer :: i, j, k, n, l
+        integer :: i, j, k, n
         do i=0, 1
             do j=0, 1
                 do k=0, 1

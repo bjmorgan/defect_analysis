@@ -10,19 +10,18 @@ implicit none
 type (atom), dimension(:), allocatable :: part
 type (octahedron), dimension(:), allocatable :: octa
 type (tetrahedron), dimension(:), allocatable :: tetra
-character(len=20) :: posfile, inptfile
+character(len=30) :: posfile, inptfile
 integer :: natoms, i, j, k, l, m, n, v, fout, dotprod, temp
 integer :: fin
 integer, dimension(:), allocatable :: v_mask, v_index
 integer, dimension(6) :: v_list
 type(atom), dimension(6) :: p_list
-double precision, dimension(2) :: rcut, rcutsq ! minimum, maximum
+double precision :: rcut, rcutsq ! minimum, maximum
 double precision :: rij(3), rij_direct(3), rijsq
 logical, dimension(:), allocatable :: pair_list
 integer, dimension(1) :: opp_ion
 double precision, dimension(:), allocatable :: rijsq_store
 integer, dimension(13) :: nearest_neighbours
-logical :: close_packed_lattice
 integer :: ntet_max, noct_max
 type(atom), dimension(4) :: equatorial_vertices
 
@@ -33,19 +32,18 @@ interface
         double precision, dimension( size(square_matrix, 1) ) :: diagonal
     end function diagonal
 
-    pure function ortho_pbc( r, boxlen )
-        double precision, dimension(3), intent(in) :: r, boxlen
-        double precision, dimension(3) :: ortho_pbc
-    end function ortho_pbc
+!    pure function ortho_pbc( r, boxlen )
+!        double precision, dimension(3), intent(in) :: r, boxlen
+!        double precision, dimension(3) :: ortho_pbc
+!    end function ortho_pbc
 
-    subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, close_packed_lattice, cpplane )
+    subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
         double precision, dimension(3), intent(out) :: cboxlen, cpplane
-        character(len=20), intent(out) :: posfile
+        character(len=30), intent(out) :: posfile
         character(len=*), intent(in) :: inptfile
         integer, intent(out) :: natoms
-        double precision, dimension(2), intent(out) :: rcut
+        double precision,  intent(out) :: rcut
         double precision, intent(out) :: h(3,3)
-        logical, intent(out) :: close_packed_lattice
     end subroutine read_input
 
     subroutine swap( x, i, j )
@@ -53,24 +51,24 @@ interface
         integer, intent(in) :: i, j
     end subroutine swap
 
-    function minimum_locations_from_array( array, number_of_values )    
-        double precision, dimension(:), intent(in) :: array
-        integer, intent(in) :: number_of_values
-        integer, dimension( number_of_values ) :: minimum_locations_from_array
-    end function minimum_locations_from_array
+!    function minimum_locations_from_array( array, number_of_values )    
+!        double precision, dimension(:), intent(in) :: array
+!        integer, intent(in) :: number_of_values
+!        integer, dimension( number_of_values ) :: minimum_locations_from_array
+!    end function minimum_locations_from_array
 
 end interface
 
 inptfile = "polyhedra.inpt"
-call read_input( inptfile, posfile, natoms, cboxlen, rcut, h, close_packed_lattice, cpplane )
+call read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
 
 rcutsq = rcut * rcut
 boxlen = cboxlen * diagonal(h)
-halfboxlen = boxlen/2
-halfcboxlen = boxlen/2 !warning. Should this be cboxlen/2?
+halfboxlen = boxlen / 2.0
+halfcboxlen = boxlen / 2.0 !warning. Should this be cboxlen/2?
 
 noct_max = natoms
-ntet_max = natoms*2
+ntet_max = natoms * 2
 
 allocate( part(natoms) )
 allocate( octa( noct_max ) )
@@ -88,7 +86,7 @@ forall (i=1:natoms)
     part(i)%neigh(:) = .false.
     part(i)%id = i
     ! map to an orthorhombic cell, assuming rhombohedral input
-    part(i)%r = ortho_pbc(part(i)%r, boxlen) 
+    part(i)%r = move_inside_cell( part(i)%r ) 
 end forall
 
 forall (i=1:natoms) v_index(i) = i
@@ -102,25 +100,13 @@ do i=1, natoms
         rij = r_as_minimum_image( rij_direct )
         rijsq_store(j) = sum( rij * rij )
     end do
-    if (close_packed_lattice) then
-! for a close-packed lattice, each ion has 13 nearest neighbours 
-! (including itself)
-        nearest_neighbours = minimum_locations_from_array( rijsq_store, 13 )
-        do j=1, size(nearest_neighbours)
-            part(i)%neigh( nearest_neighbours(j) ) = .true.
-        end do
-    else
-! if the lattice is *not* close-packed, we use rcut(min, max) to define
-! neighbour lists
-        part(i)%neigh = ( rijsq_store <= rcutsq(2) )
-    end if
+    part(i)%neigh = ( rijsq_store .le. rcutsq )
+!    end if
 end do
 
 forall (i=1:natoms) part(i)%nneigh = count(part(i)%neigh(:))
 
-! All neighbour lists now have 13 true entries
-! since the previous section finds the 13 closest ions
-! Not sure what happens now if the system is *not* close-packed !!
+! For a close-packed lattice, all neighbour lists should have 13 true entries
 
 do i=1, natoms
     call part(i)%set_neighbour_ids
@@ -153,6 +139,7 @@ do i=1, natoms-3
         end do
     end do
 end do
+write(6,*) ntet, 'tetrahedra found'
 
 write(6,*) 'searching for octahedra'
 ! find octahedra, list of ions are arranged in pairs of opposite vertices (1,2)(3,4)(5,6)
@@ -160,7 +147,7 @@ do i=1, natoms-1
     do j=i+1, natoms
         if ( part(i)%neigh(j) ) cycle
         pair_list = ( part(i)%neigh .and. part(j)%neigh )
-        if (count(pair_list) == 4) then
+        if ( count(pair_list) .eq. 4 ) then
             v_list(1) = i
             v_list(2) = j
             v_list(3:6) = pack( v_index, pair_list )
@@ -170,7 +157,7 @@ do i=1, natoms-1
                 write(6,*) "Ions: ", v_list
                 stop
             end if
-            call swap(v_list, 4, opp_ion(1))
+            call swap( v_list, 4, opp_ion(1) )
             ! test that all points are topologically equivalent (if not, assume
             ! we have a false positive identification)
             if (     count( part(v_list(3))%neigh(v_list) .and. part(v_list(4))%neigh(v_list) ) /= 4 &
@@ -190,7 +177,6 @@ do i=1, natoms-1
     end do
 end do
 
-write(6,*) ntet, 'tetrahedra found'
 write(6,*) noct, 'octahedra found'
 
 do i=1, ntet
@@ -265,15 +251,14 @@ end subroutine write_output
     
 end program find_polyhedra
 
-subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, close_packed_lattice, cpplane )
+subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
     implicit none
     double precision, dimension(3), intent(out) :: cboxlen, cpplane
-    character(len=20), intent(out) :: posfile
+    character(len=30), intent(out) :: posfile
     character(len=*), intent(in) :: inptfile
     integer, intent(out) :: natoms
-    double precision, dimension(2), intent(out) :: rcut
+    double precision, intent(out) :: rcut
     double precision, intent(out) :: h(3,3)
-    logical, intent(out) :: close_packed_lattice
     integer :: fin
 
     open(file=inptfile, status='old', form='formatted', newunit=fin)
@@ -281,13 +266,8 @@ subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, close_packed
         read(fin,*) natoms
         read(fin,*) cboxlen(1:3)
         read(fin,*) h(1:3,1:3)
-        read(fin,*) close_packed_lattice
-        if (close_packed_lattice) then
-            read(fin,*) cpplane(1:3)
-        else
-            read(fin,*) rcut
-            if ( rcut(2) < rcut(1) ) stop( "Check rcut values!" )
-        endif
+        read(fin,*) cpplane(1:3)
+        read(fin,*) rcut
     close(fin)
 end subroutine read_input
  
@@ -300,15 +280,6 @@ function diagonal( square_matrix )
     diagonal = temp_array(1::size(diagonal)+1)
 end function diagonal
 
-pure function ortho_pbc( r, boxlen )
-    implicit none
-    double precision, dimension(3), intent(in) :: r
-    double precision, dimension(3), intent(in) :: boxlen
-    double precision, dimension(3) :: ortho_pbc
-    integer :: i
-    forall(i=1:3) ortho_pbc(i) = r(i) - (int(r(i)/boxlen(i)) * boxlen(i)) ! map to orthorhombic cell
-end function ortho_pbc
-
 subroutine swap(x, i, j)
     implicit none
     integer, dimension(:), intent(inout) :: x
@@ -318,21 +289,4 @@ subroutine swap(x, i, j)
     x(i) = x(j)
     x(j) = temp
 end subroutine swap
-
-function minimum_locations_from_array( array, number_of_values )
-    implicit none
-    double precision, dimension(:), intent(in) :: array
-    integer, intent(in) :: number_of_values
-    logical, dimension( size(array) ) :: mask
-    integer, dimension( number_of_values ) :: minimum_locations_from_array
-    integer :: i
-
-    minimum_locations_from_array = 0
-    mask = .true.
-
-    do i=1, number_of_values
-        minimum_locations_from_array(i) = minloc(array, 1, mask )
-        mask( minloc( array, 1, mask ) ) = .false.
-    end do    
-end function minimum_locations_from_array
 

@@ -11,7 +11,7 @@ module faces
 
     contains
   
-    subroutine define_normal(this, point_outside)
+    subroutine define_normal( this, point_outside )
         implicit none
         type point
             double precision, dimension(3) :: r
@@ -39,9 +39,9 @@ module faces
                     - p(1)%r(1)*p(3)%r(2) + p(1)%r(2)*p(3)%r(1) &
                     + p(1)%r(1)*p(2)%r(2) - p(1)%r(2)*p(2)%r(1)
 
-        invfac = -sign(1.0, normal(1) * (p(4)%r(1)-p(1)%r(1)) &
-                          + normal(2) * (p(4)%r(2)-p(1)%r(2)) &
-                          + normal(3) * (p(4)%r(3)-p(1)%r(3)))
+        invfac = -sign(1.0, real( normal(1) * ( p(4)%r(1)-p(1)%r(1) ) &
+                                + normal(2) * ( p(4)%r(2)-p(1)%r(2) ) &
+                                + normal(3) * ( p(4)%r(3)-p(1)%r(3) ) ) )
 
         this%normal = normal * invfac
     end subroutine define_normal

@@ -54,29 +54,30 @@ module polyhedra
         type(atom) :: this_atom
         integer :: dotsum, k, l
         double precision, dimension(3) :: testp, shiftvec
-        double precision :: dotprod
+        
         do l=0, 7 ! loop over periodic images
-            shiftvec(:) = mod(l,2)        * cboxlen(1) * h(1,:) &
-                        + mod(int(l/2),2) * cboxlen(2) * h(2,:) &
-                        + mod(int(l/4),2) * cboxlen(3) * h(3,:)
+            shiftvec(:) = mod(l,2)        * boxlen(1) * h(1,:) &
+                        + mod(int(l/2),2) * boxlen(2) * h(2,:) &
+                        + mod(int(l/4),2) * boxlen(3) * h(3,:)
             dotsum = 0
             do k=1, this%num_faces ! loop over each face of the polyhedron
                 testp = (this_atom%r + shiftvec ) - this%face(k)%vertex(1)%r
-                dotprod = sum(testp * this%face(k)%normal)
-                dotsum = dotsum - sign(1.0,dotprod)
+                dotsum = dotsum - sign( dble(1.0), dot_product( testp, this%face(k)%normal ) )
             enddo
             if (dotsum == this%num_faces) then
                 if (this%occupied) then
                     write(6,*) "warning! double occupation of ", this%string, this%id
                     write(6,*) "by ions ", this%occnum, this_atom%id
+                    write(6,*) "at =>", this_atom%r
                 endif
                 this%occupied = .true.
                 this%occnum = this_atom%id
-                this_atom%polyid = this%id ! this is going to cause problems with identically numbered tetrahedra and octahedra
-                call this%contains_atom(this_atom)
+                this_atom%polyid = this%id ! be aware that tetrahedra and octahedra may have identical ids
+                call this%contains_atom( this_atom )
                 return
             endif
         enddo
+
     end subroutine occupied_by
 
     subroutine alloc_vertices( this )
@@ -90,19 +91,19 @@ module polyhedra
         allocate( this%face(this%num_faces) )
     end subroutine alloc_faces
 
-    subroutine set_vertex( this, v, this_atom )
-        class(polyhedron) :: this
-        integer :: v
-        type(atom) :: this_atom
+    pure subroutine set_vertex( this, v, this_atom )
+        class(polyhedron), intent(inout) :: this
+        integer, intent(in) :: v
+        type(atom), intent(in) :: this_atom
 
         this%vertex(v) = this_atom
         this%vertex_ids(v) = this_atom%id
     end subroutine set_vertex
 
     subroutine set_vertices( this, atoms )
-        class(polyhedron) :: this
+        class(polyhedron), intent(inout) :: this
         integer :: i
-        type(atom), dimension(:) :: atoms
+        type(atom), dimension(:), intent(in) :: atoms
     
         do i=1, this%num_vert
             this%vertex(i) = atoms(i)
@@ -111,8 +112,8 @@ module polyhedra
         call this%set_centre
     end subroutine set_vertices
 
-    subroutine set_centre( this )
-        class(polyhedron) :: this
+    pure subroutine set_centre( this )
+        class(polyhedron), intent(inout) :: this
         integer :: l
         forall (l=1:3)
             this%centre(l) = sum( this%vertex(:)%r(l) ) / this%num_vert
@@ -120,25 +121,39 @@ module polyhedra
     end subroutine set_centre
 
     subroutine set_vertices_from_ids( this, atoms )
-        class(polyhedron) :: this
+        class(polyhedron), intent(inout) :: this
         type(atom), dimension(:), intent(in) :: atoms
         type(atom), dimension(this%num_vert) :: temp_atoms
         integer :: i
-        forall (i=1:this%num_vert) temp_atoms(i) = atoms(this%vertex_ids(i))
+        do i=1, this%num_vert
+            temp_atoms(i) = atoms( this%vertex_ids( i ) )
+        end do
         call this%set_vertices( temp_atoms )
     end subroutine set_vertices_from_ids
 
-    subroutine enforce_pbc( this )
-        class( polyhedron ) :: this
-        double precision, dimension(3) :: minimum_r
-        integer :: i
+    pure subroutine enforce_pbc( this )
+        class(polyhedron), intent(inout) :: this
+        type point
+            double precision, dimension(3) :: r
+        end type point
+        integer :: i, k
+        type(point), dimension(this%num_vert) :: p
+        double precision :: tetspread
+        double precision, dimension(this%num_vert) :: dr
 
+        forall (k=1:this%num_vert) p(k)%r = this%vertex(k)%r
         do i=1, 3
-            minimum_r(i) = minval( this%vertex(:)%r(i) )
+            forall (k=1:this%num_vert) dr(k) = relr( p(k)%r, i )
+            tetspread = maxval(dr) - minval(dr)
+            if (tetspread > halfboxlen(i)) then
+                do k=1, this%num_vert
+                    if ( relr(p(k)%r, i) < halfboxlen(i) ) then
+                        p(k)%r = p(k)%r + h(i,:) * boxlen(i)
+                    end if
+                end do
+            end if
         end do
-        do i=1, this%num_vert
-            this%vertex(i)%r = minimum_r - r_as_minimum_image( dr( minimum_r, this%vertex(i)%r ) )
-        end do
+        forall (k=1:this%num_vert) this%vertex(k)%r = p(k)%r
         call this%set_centre ! update centre point
     end subroutine enforce_pbc
 

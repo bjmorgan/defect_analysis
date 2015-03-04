@@ -8,8 +8,8 @@ module atoms
         integer :: nneigh ! number of neighbours
         integer :: id
         integer, dimension(:), allocatable :: neighbour_id
-        integer :: polyid
-        logical :: inoct, intet
+        integer :: polyid, previous_polyid
+        logical :: inoct, intet, prev_inoct, prev_intet
     contains
         procedure :: set_neighbour_ids
     end type atom
