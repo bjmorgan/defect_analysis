@@ -190,10 +190,10 @@ end do
 do i=1, ntet
     tetra(i)%orientation = 0
     do j=1, 4
-        temp = -int( sign( 1.0,sum( (tetra(i)%vertex(j)%r-tetra(i)%centre)*cpplane ) ) )
+        temp = -int( sign( dble(1.0), sum( ( tetra(i)%vertex(j)%r - tetra(i)%centre ) * cpplane ) ) )
         tetra(i)%orientation = tetra(i)%orientation + temp
     end do
-    tetra(i)%orientation = sign(1,tetra(i)%orientation)
+    tetra(i)%orientation = sign( 1, tetra(i)%orientation )
 end do
 
 call write_output( tetra(1:ntet), octa(1:noct) )
