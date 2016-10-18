@@ -7,7 +7,7 @@ all: app
 debug: FFLAGS = -check all -traceback
 debug: app
 
-opt: FFLAGS = -fast -O3
+opt: FFLAGS = -O2
 opt: app
 
 app: $(OBJS)
