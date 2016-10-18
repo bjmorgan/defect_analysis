@@ -1,0 +1,4 @@
+Improve output data:
+- e.g. create a yaml database of polyhedra. 
+  For each polyhedron can list the vertex numbers, vertex positions, vertex ids, centre position.
+- Distinguishing up / down tetrahedra should probably be moved to a separate utility.
