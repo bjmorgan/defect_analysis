@@ -22,6 +22,7 @@ integer :: natomsout ! number of mobile atoms
 integer, allocatable, dimension(:) :: nsp, polylist, sitelist
 character(len=30) :: fmtout, fmtout2
 integer :: fin, fout1, fout2, fout3, fcell
+logical :: variable_cell
 
 interface
 
@@ -55,9 +56,16 @@ read( fin, * ) lattice_spec
 read( fin, * ) mobile_spec
 read( fin, * ) ntet
 read( fin, * ) noct
+read( fin, * ) variable_cell
 read( fin, * ) boxlen(:)
 read( fin, * ) h(:,:)
 close(fin)
+
+if ( .not. variable_cell ) then
+    halfboxlen = boxlen / 2.0
+    cboxlen = diagonal( h ) * boxlen
+    halfcboxlen = cboxlen / 2.0
+endif
 
 call setup_tet(tetra, ntet)
 call setup_oct(octa, noct)
@@ -111,12 +119,14 @@ do nstep=1, nconfigs
         spec(mobile_spec)%ion(j)%intet  = .false.
     end do
 
-    read( fcell, * ) h(:,:) ! cell unit vectors are rows in h
-    read( fcell, * ) boxlen(:) 
-    halfboxlen = boxlen / 2.0
-    cboxlen = diagonal( h ) * boxlen
-    halfcboxlen = cboxlen / 2.0
-    
+    if ( variable_cell ) then
+        read( fcell, * ) h(:,:) ! cell unit vectors are rows in h
+        read( fcell, * ) boxlen(:) 
+        halfboxlen = boxlen / 2.0
+        cboxlen = diagonal( h ) * boxlen
+        halfcboxlen = cboxlen / 2.0
+    endif
+ 
     do i=1, nspec
         do j=1, nsp(i)
             associate( this_ion => spec(i)%ion(j) )
