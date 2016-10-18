@@ -85,14 +85,14 @@ select case (zdir)
         stop
 end select
 
-open(10, file=pairfile, status="old", form="formatted")
+open(10, file=pairfile%filename, status="old", form="formatted")
 do i=1, ntet ! tetrahedra can be paired if we have hcp stacking
     read(10,*) dum ,j
     site(i)%pair = j
 end do
 
-open(11, file=defectfile, status="old", form="formatted")
-open(12, file=posfile, status="old")
+open(11, file=defectfile%filename, status="old", form="formatted")
+open(12, file=posfile%filename, status="old")
 
 write(fmtin, '(A4,I4,A7)') "(I5,",nions,"(I5,X))" ! internal write to define output formatting
 
