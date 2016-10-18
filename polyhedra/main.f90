@@ -117,7 +117,7 @@ write(6,*) 'searching for tetrahedra'
 !tetrahedra are defined by sets of four atoms, where any triplet are neighbours of the fourth
 do i=1, natoms-3   
     do j=i+1, natoms-2
-        if ( .not.part(j)%neigh(i) )cycle
+        if ( .not.part(j)%neigh(i) ) cycle
         do k=j+1, natoms-1
             if ( .not. ( part(k)%neigh(j) .and. part(k)%neigh(i) ) ) cycle
             do l=k+1, natoms
