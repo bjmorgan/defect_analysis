@@ -1,5 +1,7 @@
 # Site Analysis Tools
 
+[![Build Status](https://travis-ci.org/bjmorgan/site_analysis.svg?branch=master)](https://travis-ci.org/bjmorgan/site_analysis)
+
 This repository contains software tools for analysing crystal structures and molecular dynamics trajectories in terms of lattice-site occupations.
 
 ## Tools:
