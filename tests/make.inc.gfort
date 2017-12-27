@@ -1,0 +1,3 @@
+# Flags for compilig with gfortran
+FC=gfortran
+FFLAGS='-Og -Wall -fimplicit-none -fcheck=all -fbacktrace'

@@ -1,0 +1,10 @@
+language: python
+python:
+    - "3.6"
+addons:
+  apt:
+    packages:
+        - gfortran
+install:
+    - ./tests/travis_test_build_siteid.sh
+
