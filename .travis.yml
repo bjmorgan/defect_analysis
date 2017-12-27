@@ -1,10 +1,16 @@
 language: python
+notifications:
+  email: false
 python:
-    - "3.6"
+  - "3.6"
+os:
+  - linux
 addons:
   apt:
     packages:
-        - gfortran
+      - gfortran
 install:
-    - ./tests/travis_test_build_siteid.sh
+  - ./tests/travis_test_build_siteid.sh
+script:
+  - echo "okay"
 
