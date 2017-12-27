@@ -7,8 +7,6 @@ module polyhedra
 
     implicit none
    
-    integer :: n_polyhedra = 0
- 
     type, abstract, extends(site) :: polyhedron
         type(atom), dimension(:), allocatable :: vertex
         integer, dimension(:), allocatable :: vertex_ids

@@ -9,7 +9,7 @@ module atoms
         integer :: id
         integer, dimension(:), allocatable :: neighbour_id
         integer :: polyid, previous_polyid
-        logical :: inoct, intet, prev_inoct, prev_intet
+        logical :: inoct, intet, insph, prev_inoct, prev_intet, prev_insph
     contains
         procedure :: set_neighbour_ids
     end type atom

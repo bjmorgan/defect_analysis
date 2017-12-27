@@ -42,13 +42,13 @@ module tetrahedra
         class(tetrahedron), dimension(:), allocatable :: tetra
         integer, intent(in) :: ntet
         integer :: i
-        id_offset = n_polyhedra
+        id_offset = n_sites
         allocate(tetra(ntet))
         do i=1, ntet
             call tetra(i)%init
             tetra(i)%id = i
         enddo 
-        n_polyhedra = n_polyhedra + ntet
+        n_sites = n_sites + ntet
         end subroutine setup_tet
 
      subroutine init_tet( this )

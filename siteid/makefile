@@ -1,4 +1,4 @@
-OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o faces.o input_parameters.o sites.o
+OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o faces.o input_parameters.o sites.o spheres.o
 EXECUTABLE=siteid
 FC=ifort
 BINDIR=../bin
@@ -15,7 +15,7 @@ app: $(OBJS)
 	@mkdir -p $(BINDIR)
 	$(FC) $(FFLAGS) $(OBJS) -o $(BINDIR)/$(EXECUTABLE)
 
-main.o: main.f90 atoms.mod cell.mod octahedra.mod tetrahedra.mod input_parameters.mod
+main.o: main.f90 atoms.mod cell.mod octahedra.mod tetrahedra.mod spheres.mod input_parameters.mod
 	$(FC) $(FFLAGS) -c main.f90 
 
 cell.o: cell.f90
@@ -65,6 +65,13 @@ sites.mod: sites.f90
 
 sites.o: sites.f90
 	$(FC) $(FFLAGS) -c sites.f90
+
+spheres.mod: spheres.f90 sites.mod atoms.mod
+	$(FC) $(FFLAGS) -c spheres.f90
+
+spheres.o: spheres.f90 sites.mod atoms.mod
+	$(FC) $(FFLAGS) -c spheres.f90
+
 
 clean:
 	rm -f *.o *.mod $(EXECUTABLE)

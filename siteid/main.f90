@@ -3,6 +3,7 @@ program defect_new
 use atoms
 use tetrahedra
 use octahedra
+use spheres
 use cell
 use input_parameters
  
@@ -16,6 +17,7 @@ type (input_parameter_set) :: params
 type (species), dimension(:), allocatable :: spec
 class (tetrahedron), dimension(:), allocatable :: tetra
 class (octahedron), dimension(:), allocatable :: octa
+class (spherical_site), dimension(:), allocatable :: sphera
 
 character(len=30) :: inptfile, poly_out, atoms_out, npolyocc
 integer :: i, j
@@ -57,27 +59,42 @@ endif
 
 call setup_tet( tetra, params%ntet )
 call setup_oct( octa, params%noct )
+call setup_sph( sphera, params%nspheres )
 
 natomsout = params%nsp( params%mobile_spec ) 
 
 allocate( polylist( natomsout ) )
-allocate( sitelist( params%ntet+params%noct ) )
+allocate( sitelist( params%ntet+params%noct+params%nspheres ) )
  
 ! read in ids for tetrahedra vertices
 ! TODO this should go in the tetrahedra.f90 file
-open(file=params%tetfile, status='old', newunit=fin)
-do i=1, params%ntet 
-    read(fin,*) tetra(i)%vertex_ids
-enddo
-close(fin)
+if ( params%ntet > 0 ) then
+    open(file=params%tetfile, status='old', newunit=fin)
+    do i=1, params%ntet 
+        read(fin,*) tetra(i)%vertex_ids
+    enddo
+    close(fin)
+endif
 
 ! read in ids for octahedra vertices
 ! TODO this should go in the octahedra.f90 file
-open(file=params%octfile, status='old', newunit=fin)
-do i=1, params%noct
-    read(fin,*) octa(i)%vertex_ids
-enddo
-close(fin)
+if ( params%noct > 0 ) then
+    open(file=params%octfile, status='old', newunit=fin)
+    do i=1, params%noct
+        read(fin,*) octa(i)%vertex_ids
+    enddo
+    close(fin)
+endif
+
+! read in coordinates and radii for spherical sites
+! TODO this should go in the spheres.f90 file
+if ( params%nspheres > 0 ) then
+    open(file=params%sphfile, status='old', newunit=fin)
+    do i=1, params%nspheres
+        read(fin,*) sphera(i)%centre, sphera(i)%cutoff
+    enddo
+    close(fin)
+endif
 
 open( file = params%posfile,   status='old', newunit=fin )
 open( file = params%cellfile,  status='old', newunit=fcell )
@@ -89,8 +106,10 @@ do concurrent (i=1:params%nspec)
     spec(i)%ion%polyid = 0
     spec(i)%ion%inoct = .false.
     spec(i)%ion%intet = .false.
+    spec(i)%ion%insph = .false.
     spec(i)%ion%prev_intet = .false.
     spec(i)%ion%prev_inoct = .false.
+    spec(i)%ion%prev_insph = .false.
 end do
 
 do nstep=1, params%nconfigs
@@ -99,15 +118,19 @@ do nstep=1, params%nconfigs
     tetra%occupied = .false.
     octa%occnum = 0
     octa%occupied = .false.
-
+    sphera%occnum = 0
+    sphera%occupied = .false.
+ 
     do j=1, params%nsp( params%mobile_spec )
         associate( this_ion => spec(params%mobile_spec)%ion(j) )
             this_ion%previous_polyid = this_ion%polyid
             this_ion%prev_inoct = this_ion%inoct
             this_ion%prev_intet = this_ion%intet
+            this_ion%prev_insph = this_ion%insph
             this_ion%polyid = 0
-            this_ion%inoct  = .false.
-            this_ion%intet  = .false.
+            this_ion%inoct = .false.
+            this_ion%intet = .false.
+            this_ion%insph = .false.
         end associate
     end do
 
@@ -147,8 +170,10 @@ do nstep=1, params%nconfigs
                 call tetra( this_ion%previous_polyid )%occupied_by( this_ion )
             else if ( this_ion%prev_inoct ) then
                 call octa( this_ion%previous_polyid )%occupied_by( this_ion )
+            else if ( this_ion%prev_insph ) then
+                call sphera( this_ion%previous_polyid )%occupied_by( this_ion )
             end if
-            if ( this_ion%intet .or. this_ion%inoct ) cycle ionloop
+            if ( this_ion%intet .or. this_ion%inoct .or. this_ion%insph ) cycle ionloop
             ! ion has moved. search over remaining tetrahedra
             tetloop: do thispoly = 1, params%ntet
                 if ( this_ion%prev_intet .and. thispoly .eq. this_ion%previous_polyid ) cycle tetloop
@@ -161,14 +186,20 @@ do nstep=1, params%nconfigs
                 call octa( thispoly )%occupied_by( this_ion )
                 if ( this_ion%inoct ) cycle ionloop
             end do octloop
+            ! search over spherical sites
+            sphloop: do thispoly = 1, params%nspheres
+                if ( this_ion%prev_insph .and. thispoly .eq. this_ion%previous_polyid ) cycle sphloop
+                call sphera( thispoly )%occupied_by( this_ion )
+                if ( this_ion%insph ) cycle ionloop
+            end do sphloop
+   
             ! if we reach here without cycling ionloop, this ion has not been located in any polyhedron
-            write(6,*) 'Ion ', j,' not in any polyhedra, at ', this_ion%r
-            stop
+            !write(6,*) 'Ion ', j,' not in any polyhedra, at ', this_ion%r
         end associate
     end do ionloop
 
-    write(6,*) "step ", nstep, count(tetra%occupied), count(octa%occupied)
-    write(fout1,*) nstep, count(tetra%occupied), count(octa%occupied)
+    write(6,*) "step ", nstep, count(tetra%occupied), count(octa%occupied), count(sphera%occupied)
+    write(fout1,*) nstep, count(tetra%occupied), count(octa%occupied), count(sphera%occupied)
 
     natomsout = 0
     polylist = 0
@@ -179,7 +210,9 @@ do nstep=1, params%nconfigs
                 polylist(natomsout) = octa( this_ion%polyid )%unique_id()
             else if ( this_ion%intet ) then
                 polylist(natomsout) = tetra( this_ion%polyid )%unique_id()
-             else
+            else if (this_ion%insph )then
+                polylist(natomsout) = sphera( this_ion%polyid )%unique_id()
+            else
                 polylist(natomsout) = 0
             endif
         end associate
@@ -187,9 +220,10 @@ do nstep=1, params%nconfigs
 
     sitelist( 1:params%ntet ) = tetra%occnum
     sitelist( params%ntet+1:params%ntet+params%noct ) = octa%occnum
+    sitelist( params%ntet+params%noct+1:params%ntet+params%noct+params%nspheres ) = sphera%occnum
 
     write( fmtout,  '(A4,I5,A7)') "(I5,", natomsout, "(I6,X))" ! internal write to define output formatting
-    write( fmtout2, '(A4,I5,A7)') "(I5,", params%ntet+params%noct, "(I6,X))" ! internal write to define output formatting
+    write( fmtout2, '(A4,I5,A7)') "(I5,", params%ntet+params%noct+params%nspheres, "(I6,X))" ! internal write to define output formatting
     write( fout2, fmtout )  nstep, polylist(:)
     write( fout3, fmtout2 ) nstep, sitelist(:)
 

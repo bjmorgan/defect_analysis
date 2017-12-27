@@ -25,6 +25,7 @@ module octahedra
         class(atom) :: this_atom
         this_atom%intet = .false.
         this_atom%inoct = .true.
+        this_atom%insph = .false.
     end subroutine oct_contains_atom
 
     subroutine oct_assign_faces( this ) ! vertices are arranged in opposite pairs: (1,2)(3,4)(5,6)
@@ -47,13 +48,13 @@ module octahedra
         class(octahedron), dimension(:), allocatable :: octa
         integer, intent(in) :: noct
         integer :: i
-        id_offset = n_polyhedra
+        id_offset = n_sites
         allocate(octa(noct))
         do i=1, noct
             call octa(i)%init
             octa(i)%id = i
         enddo
-        n_polyhedra = n_polyhedra + noct
+        n_sites = n_sites + noct
     end subroutine setup_oct
 
     subroutine init_oct( this )
