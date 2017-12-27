@@ -32,7 +32,10 @@ class TestSiteID( unittest.TestCase ):
                shutil.copy( full_file_name, test_dir )
         shutil.copy( '../bin/{}'.format( executable ), test_dir )
         with cd( test_dir ):
-            subprocess.check_output( [ './{}'.format( executable ) ] )
+            p = subprocess.run( [ './{}'.format( executable ) ], 
+                                stdout = subprocess.PIPE, stderr = subprocess.PIPE )
+            print( p.stdout )
+            print( p.stderr )
         output_src = './{}/expected_outputs'.format( data_path )
         output_files = os.listdir( output_src )
         for of in output_files:
