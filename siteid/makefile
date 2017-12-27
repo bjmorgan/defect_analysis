@@ -1,4 +1,4 @@
-OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o faces.o input_parameters.o
+OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o faces.o input_parameters.o sites.o
 EXECUTABLE=siteid
 FC=ifort
 BINDIR=../bin
@@ -30,10 +30,10 @@ atoms.o: atoms.f90
 atoms.mod: atoms.f90
 	$(FC) $(FFLAGS) -c atoms.f90
 
-polyhedra.o: polyhedra.f90 atoms.mod cell.mod faces.mod
+polyhedra.o: polyhedra.f90 atoms.mod cell.mod faces.mod sites.mod
 	$(FC) $(FFLAGS) -c polyhedra.f90
 
-polyhedra.mod: polyhedra.f90 atoms.mod cell.mod faces.mod
+polyhedra.mod: polyhedra.f90 atoms.mod cell.mod faces.mod sites.mod
 	$(FC) $(FFLAGS) -c polyhedra.f90
 
 octahedra.mod: octahedra.f90 polyhedra.mod
@@ -59,6 +59,12 @@ input_parameters.mod: input_parameters.f90
 
 input_parameters.o: input_parameters.f90
 	$(FC) $(FFLAGS) -c input_parameters.f90
+
+sites.mod: sites.f90
+	$(FC) $(FFLAGS) -c sites.f90
+
+sites.o: sites.f90
+	$(FC) $(FFLAGS) -c sites.f90
 
 clean:
 	rm -f *.o *.mod $(EXECUTABLE)

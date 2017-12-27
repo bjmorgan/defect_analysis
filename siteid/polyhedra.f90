@@ -3,24 +3,18 @@ module polyhedra
     use atoms
     use cell
     use faces
+    use sites
 
     implicit none
    
-    integer, parameter :: string_length = 11
     integer :: n_polyhedra = 0
  
-    type, abstract :: polyhedron
-        double precision, dimension(3) :: centre
+    type, abstract, extends(site) :: polyhedron
         type(atom), dimension(:), allocatable :: vertex
         integer, dimension(:), allocatable :: vertex_ids
         integer :: num_vert
         integer :: num_faces
         type(face), dimension(:), allocatable :: face
-        logical :: occupied 
-        integer :: occnum
-        type(atom) :: occ_atom
-        integer :: id
-        character(len=string_length) :: string
     contains
         procedure :: set_vertex
         procedure :: set_vertices
@@ -28,33 +22,21 @@ module polyhedra
         procedure :: alloc_vertices
         procedure :: alloc_faces
         procedure :: enforce_pbc
-        procedure :: occupied_by
+        procedure :: occupied_by => poly_occupied_by
         procedure, private :: set_centre
-        procedure(contains_atom_sub), deferred, nopass :: contains_atom
         procedure(assign_faces_sub), deferred :: assign_faces
-        procedure(unique_id_func), deferred :: unique_id
     end type polyhedron
 
     abstract interface
-        subroutine contains_atom_sub(this_atom)
-            import :: atom
-            class(atom) :: this_atom
-        end subroutine contains_atom_sub
-    
         subroutine assign_faces_sub( this )
             import :: polyhedron
             class( polyhedron ) :: this
         end subroutine assign_faces_sub
-
-        integer function unique_id_func(this)
-            import :: polyhedron
-            class(polyhedron), intent(in) :: this
-        end function unique_id_func
     end interface
 
     contains
 
-    subroutine occupied_by( this, this_atom )
+    subroutine poly_occupied_by( this, this_atom )
         implicit none
         class(polyhedron) :: this
         type(atom) :: this_atom
@@ -84,7 +66,7 @@ module polyhedra
             endif
         enddo
 
-    end subroutine occupied_by
+    end subroutine poly_occupied_by
 
     subroutine alloc_vertices( this )
         class(polyhedron) :: this
