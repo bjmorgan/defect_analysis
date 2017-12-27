@@ -13,5 +13,6 @@ install:
   - cd ./tests
   - ./travis_build_siteid.sh
 script:
-  - echo "okay"
+  - cd ./tests
+  - python -m unittest discover
 
