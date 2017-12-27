@@ -11,7 +11,7 @@ addons:
       - gfortran
 install:
   - cd ./tests
-  - ./travis_test_build_siteid.sh
+  - ./travis_build_siteid.sh
 script:
   - echo "okay"
 
