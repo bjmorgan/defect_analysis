@@ -7,6 +7,7 @@ module tetrahedra
     implicit none
     
     integer :: ntet = 0
+    integer :: id_offset
     integer, parameter :: ntet_vertices = 4
     integer, parameter :: ntet_faces = 4
     character(len=string_length), parameter :: tet_string = 'tetrahedron'
@@ -16,13 +17,13 @@ module tetrahedra
     contains
         procedure :: init => init_tet
         procedure :: assign_faces => tet_assign_faces
-        procedure :: contains_atom => tet_contains_atom
+        procedure, nopass :: contains_atom => tet_contains_atom
+        procedure :: unique_id => tet_unique_id
     end type tetrahedron
 
     contains
 
-    subroutine tet_contains_atom(this, this_atom)
-        class(tetrahedron) :: this
+    subroutine tet_contains_atom(this_atom)
         class(atom) :: this_atom
         this_atom%intet = .true.
         this_atom%inoct = .false.
@@ -41,11 +42,13 @@ module tetrahedra
         class(tetrahedron), dimension(:), allocatable :: tetra
         integer, intent(in) :: ntet
         integer :: i
+        id_offset = n_polyhedra
         allocate(tetra(ntet))
         do i=1, ntet
             call tetra(i)%init
             tetra(i)%id = i
         enddo 
+        n_polyhedra = n_polyhedra + ntet
         end subroutine setup_tet
 
      subroutine init_tet( this )
@@ -56,5 +59,10 @@ module tetrahedra
         call this%alloc_vertices
         call this%alloc_faces
     end subroutine init_tet
+
+    integer function tet_unique_id( this )
+        class(tetrahedron), intent(in) :: this
+        tet_unique_id = id_offset + this%id
+    end function tet_unique_id
 
 end module tetrahedra

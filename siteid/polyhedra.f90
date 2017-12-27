@@ -7,6 +7,7 @@ module polyhedra
     implicit none
    
     integer, parameter :: string_length = 11
+    integer :: n_polyhedra = 0
  
     type, abstract :: polyhedron
         double precision, dimension(3) :: centre
@@ -29,14 +30,14 @@ module polyhedra
         procedure :: enforce_pbc
         procedure :: occupied_by
         procedure, private :: set_centre
-        procedure(contains_atom_sub), deferred :: contains_atom
+        procedure(contains_atom_sub), deferred, nopass :: contains_atom
         procedure(assign_faces_sub), deferred :: assign_faces
+        procedure(unique_id_func), deferred :: unique_id
     end type polyhedron
 
     abstract interface
-        subroutine contains_atom_sub(this, this_atom)
-            import :: polyhedron, atom
-            class(polyhedron) :: this
+        subroutine contains_atom_sub(this_atom)
+            import :: atom
             class(atom) :: this_atom
         end subroutine contains_atom_sub
     
@@ -44,6 +45,11 @@ module polyhedra
             import :: polyhedron
             class( polyhedron ) :: this
         end subroutine assign_faces_sub
+
+        integer function unique_id_func(this)
+            import :: polyhedron
+            class(polyhedron), intent(in) :: this
+        end function unique_id_func
     end interface
 
     contains
@@ -62,17 +68,17 @@ module polyhedra
             dotsum = 0
             do k=1, this%num_faces ! loop over each face of the polyhedron
                 testp = (this_atom%r + shiftvec ) - this%face(k)%vertex(1)%r
-                dotsum = dotsum - sign( dble(1.0), dot_product( testp, this%face(k)%normal ) )
+                dotsum = dotsum - int( sign( dble(1.0), dot_product( testp, this%face(k)%normal ) ) )
             enddo
             if (dotsum == this%num_faces) then
                 if (this%occupied) then
-                    write(6,*) "warning! double occupation of ", this%string, this%id
+                    write(6,*) "warning! double occupation of ", this%string, this%unique_id()
                     write(6,*) "by ions ", this%occnum, this_atom%id
                     write(6,*) "at =>", this_atom%r
                 endif
                 this%occupied = .true.
                 this%occnum = this_atom%id
-                this_atom%polyid = this%id ! be aware that tetrahedra and octahedra may have identical ids
+                this_atom%polyid = this%id 
                 call this%contains_atom( this_atom )
                 return
             endif

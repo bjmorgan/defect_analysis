@@ -18,7 +18,7 @@ class (tetrahedron), dimension(:), allocatable :: tetra
 class (octahedron), dimension(:), allocatable :: octa
 
 character(len=30) :: inptfile, poly_out, atoms_out, npolyocc
-integer :: i, j, polyswitch
+integer :: i, j
 integer :: nstep, thispoly
 integer :: natomsout ! number of mobile atoms 
 integer, allocatable, dimension(:) :: polylist, sitelist
@@ -146,7 +146,7 @@ do nstep=1, params%nconfigs
             if ( this_ion%prev_intet ) then
                 call tetra( this_ion%previous_polyid )%occupied_by( this_ion )
             else if ( this_ion%prev_inoct ) then
-                call  octa( this_ion%previous_polyid )%occupied_by( this_ion )
+                call octa( this_ion%previous_polyid )%occupied_by( this_ion )
             end if
             if ( this_ion%intet .or. this_ion%inoct ) cycle ionloop
             ! ion has moved. search over remaining tetrahedra
@@ -176,11 +176,12 @@ do nstep=1, params%nconfigs
         associate( this_ion => spec(params%mobile_spec)%ion(j) )
             natomsout = natomsout + 1
             if ( this_ion%inoct ) then
-                polyswitch = -1
-            else
-                polyswitch = +1
+                polylist(natomsout) = octa( this_ion%polyid )%unique_id()
+            else if ( this_ion%intet ) then
+                polylist(natomsout) = tetra( this_ion%polyid )%unique_id()
+             else
+                polylist(natomsout) = 0
             endif
-            polylist(natomsout) = this_ion%polyid * polyswitch
         end associate
     enddo
 

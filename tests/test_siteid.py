@@ -39,7 +39,6 @@ class TestSiteID( unittest.TestCase ):
             expected_data = np.loadtxt( os.path.join( output_src, of ) )
             calculated_data = np.loadtxt( os.path.join( test_dir, of ) )
             np.testing.assert_array_equal( expected_data, calculated_data ) 
-       
                     
 if __name__ == '__main__':
     unittest.main()

@@ -5,6 +5,7 @@ module octahedra
     implicit none
     
     integer :: noct = 0
+    integer :: id_offset
     integer, parameter :: noct_vertices = 6
     integer, parameter :: noct_faces = 8
     integer :: occoct
@@ -14,13 +15,13 @@ module octahedra
     contains
         procedure :: init => init_oct
         procedure :: assign_faces => oct_assign_faces
-        procedure :: contains_atom => oct_contains_atom 
+        procedure, nopass :: contains_atom => oct_contains_atom 
+        procedure :: unique_id => oct_unique_id
     end type octahedron
 
     contains
 
-    subroutine oct_contains_atom(this, this_atom)
-        class(octahedron) :: this
+    subroutine oct_contains_atom(this_atom)
         class(atom) :: this_atom
         this_atom%intet = .false.
         this_atom%inoct = .true.
@@ -46,11 +47,13 @@ module octahedra
         class(octahedron), dimension(:), allocatable :: octa
         integer, intent(in) :: noct
         integer :: i
+        id_offset = n_polyhedra
         allocate(octa(noct))
         do i=1, noct
             call octa(i)%init
             octa(i)%id = i
         enddo
+        n_polyhedra = n_polyhedra + noct
     end subroutine setup_oct
 
     subroutine init_oct( this )
@@ -74,5 +77,10 @@ module octahedra
         end do
         oct_exists = .false.
     end function oct_exists
+
+    integer function oct_unique_id( this )
+        class(octahedron), intent(in) :: this
+        oct_unique_id = id_offset + this%id
+    end function oct_unique_id
 
 end module octahedra
