@@ -12,6 +12,7 @@ addons:
 install:
   - cd ./tests
   - ./travis_build_siteid.sh
+  - cd ..
 script:
   - cd ./tests
   - python -m unittest discover
