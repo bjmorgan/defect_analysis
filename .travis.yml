@@ -10,7 +10,8 @@ addons:
     packages:
       - gfortran
 install:
-  - ./tests/travis_test_build_siteid.sh
+  - cd ./tests
+  - ./travis_test_build_siteid.sh
 script:
   - echo "okay"
 
