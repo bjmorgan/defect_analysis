@@ -1,6 +1,7 @@
 OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o faces.o
-EXECUTABLE=defectid
+EXECUTABLE=siteid
 FC=ifort
+BINDIR=../bin
 
 all: app
 
@@ -11,7 +12,8 @@ opt: FFLAGS = -fast -O3
 opt: app
 
 app: $(OBJS)
-	$(FC) $(FFLAGS) $(OBJS) -o $(EXECUTABLE)
+	@mkdir -p $(BINDIR)
+	$(FC) $(FFLAGS) $(OBJS) -o $(BINDIR)/$(EXECUTABLE)
 
 main.o: main.f90 atoms.mod cell.mod octahedra.mod tetrahedra.mod
 	$(FC) $(FFLAGS) -c main.f90 

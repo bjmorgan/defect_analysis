@@ -1,5 +1,4 @@
 *.x
 *.mod
 *.o
-*/polyhedra
-*/defectid
+bin
