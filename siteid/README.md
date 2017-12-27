@@ -1,6 +1,6 @@
 # siteid
 
-D. Marrocchelli 
+D. Marrocchelli  
 B. J. Morgan
 
 Analyse a molecular dynamics trajectory to identify the sites occupied by mobile ions.
@@ -68,7 +68,7 @@ TODO: Addition of spherical site types (as fixed coordinates / centroids of sets
 
 ## References
 
-1. D. Marrocchelli, P. A. Madden, S. T. Norberg, and S. Hull. &ldquo;Cation composition effects on oxide conductivity in the Zr<sub>2</sub>Y<sub>2</sub>O<sub>7</sub>-Y<sub>3<sub>NbO<sub>7</sub> system&rdquo; J. Phys.-Condens. Matt. **21** 405403 (2009).
+1. D. Marrocchelli, P. A. Madden, S. T. Norberg, and S. Hull. &ldquo;Cation composition effects on oxide conductivity in the Zr<sub>2</sub>Y<sub>2</sub>O<sub>7</sub>-Y<sub>3</sub>NbO<sub>7</sub> system&rdquo; J. Phys.-Condens. Matt. **21** 405403 (2009).
 2. B. J. Morgan and P. A. Madden &ldquo;Effects of Lattice Polarity on Interfacial Space Charges and Defect Disorder in Ionically Conducting AgI Heterostructures&rdquo; Phys. Rev. Lett. **107** 206102 (2011).
 3. B. J. Morgan and P. A. Madden &ldquo;Absence of a space-charge-derived enhancement of ionic conductivity in &beta;|&gamma;-heterostructured 7H- and 9R-AgI&rdquo; J. Phys.-Conden. Matt. **24** 275303 (2012).
 4. B. J. Morgan and P. A. Madden &ldquo;Relationships Between Atomic Diffusion Mechanisms and Ensemble Transport Coefficients in Crystalline Polymorphs&rqduo; Phys. Rev. Lett. **112** 145901 (2014).
