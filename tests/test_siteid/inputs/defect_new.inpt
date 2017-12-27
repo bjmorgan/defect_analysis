@@ -2,6 +2,7 @@ poscart.out
 cell_matrix.out
 tet.list
 oct.list
+sph.list
 10        nsteps
 4           nspec
 768         natoms
@@ -12,6 +13,7 @@ oct.list
 4           species identity of mobile ions
 960       ntet
 512       noct
+0         nsph
 .false.     variable cell
   49.81007063       49.79930828       48.57409755
 1.0 0.0 0.0
