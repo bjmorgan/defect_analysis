@@ -1,7 +1,10 @@
 module cell
 
     double precision, dimension(3,3) :: h
-    double precision, dimension(3) :: boxlen, cboxlen, halfboxlen, halfcboxlen, cpplane
+    double precision, dimension(3) :: boxlen, cboxlen, halfboxlen, halfcboxlen
+    logical :: cp_tet_assign ! assign tetrahedra according to orientation wrt close-packed direction
+    double precision, dimension(3) :: cpplane ! vector along close-packed direction
+    ! cpplane is set to (/ 0.0, 0.0, 0.0 /) if cp_tet_assign is .false.
 
 contains
 

@@ -30,11 +30,13 @@ interface
         double precision, dimension( size(square_matrix, 1) ) :: diagonal
     end function diagonal
 
-    subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
+    subroutine read_input( inptfile, posfile, natoms, ntet_max, noct_max, &
+                           cboxlen, rcut, h, cp_tet_assign, cpplane )
         double precision, dimension(3), intent(out) :: cboxlen, cpplane
         character(len=30), intent(out) :: posfile
         character(len=*), intent(in) :: inptfile
-        integer, intent(out) :: natoms
+        integer, intent(out) :: natoms, ntet_max, noct_max
+        logical, intent(out) :: cp_tet_assign
         double precision,  intent(out) :: rcut
         double precision, intent(out) :: h(3,3)
     end subroutine read_input
@@ -53,15 +55,13 @@ interface
 end interface
 
 inptfile = "find_polyhedra.inpt"
-call read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
+call read_input( inptfile, posfile, natoms, ntet_max, noct_max, &
+                 cboxlen, rcut, h, cp_tet_assign, cpplane )
 
 rcutsq = rcut * rcut
 boxlen = cboxlen * diagonal(h)
 halfboxlen = boxlen / 2.0
 halfcboxlen = boxlen / 2.0 !warning. Should this be cboxlen/2?
-
-noct_max = natoms
-ntet_max = natoms * 2
 
 allocate( part(natoms) )
 allocate( octa( noct_max ) )
@@ -105,72 +105,75 @@ do i=1, natoms
     call part(i)%set_neighbour_ids
 end do
 
-write(6,*) 'searching for tetrahedra'
-!find tetrahedra
-!tetrahedra are defined by sets of four atoms, where any triplet are neighbours of the fourth
-do i=1, natoms-3   
-    do j=i+1, natoms-2
-        if ( .not.part(j)%neigh(i) ) cycle
-        do k=j+1, natoms-1
-            if ( .not. ( part(k)%neigh(j) .and. part(k)%neigh(i) ) ) cycle
-            do l=k+1, natoms
-                if ( .not. ( part(l)%neigh(k) .and. part(l)%neigh(j) .and. part(l)%neigh(i) ) ) cycle
-                pair_list = .false.
-                pair_list(i) = .true.
-                pair_list(j) = .true.
-                pair_list(k) = .true.
-                pair_list(l) = .true.
-                ntet = ntet + 1
-                if ( ntet > ntet_max ) then
-                    stop( 'Found too many tetrahedra. Maybe decrease the cutoff?')
-                end if
-                associate( tet => tetra(ntet) )
-                    call tet%init
-                    call tet%set_vertices( pack(part, pair_list) )
-                end associate
+if ( ntet_max > 0 ) then
+    write(6,*) 'searching for tetrahedra'
+    !find tetrahedra
+    !tetrahedra are defined by sets of four atoms, where any triplet are neighbours of the fourth
+    do i=1, natoms-3   
+        do j=i+1, natoms-2
+            if ( .not.part(j)%neigh(i) ) cycle
+            do k=j+1, natoms-1
+                if ( .not. ( part(k)%neigh(j) .and. part(k)%neigh(i) ) ) cycle
+                do l=k+1, natoms
+                    if ( .not. ( part(l)%neigh(k) .and. part(l)%neigh(j) .and. part(l)%neigh(i) ) ) cycle
+                    pair_list = .false.
+                    pair_list(i) = .true.
+                    pair_list(j) = .true.
+                    pair_list(k) = .true.
+                    pair_list(l) = .true.
+                    ntet = ntet + 1
+                    if ( ntet > ntet_max ) then
+                        stop( 'Found more tetrahedra than expected.' )
+                    end if
+                    associate( tet => tetra(ntet) )
+                        call tet%init
+                        call tet%set_vertices( pack(part, pair_list) )
+                    end associate
+                end do
             end do
         end do
     end do
-end do
-write(6,*) ntet, 'tetrahedra found'
+    write(6,*) ntet, 'tetrahedra found'
+endif
 
-write(6,*) 'searching for octahedra'
-! find octahedra, list of ions are arranged in pairs of opposite vertices (1,2)(3,4)(5,6)
-do i=1, natoms-1 
-    do j=i+1, natoms
-        if ( part(i)%neigh(j) ) cycle
-        pair_list = ( part(i)%neigh .and. part(j)%neigh )
-        if ( count(pair_list) .eq. 4 ) then
-            v_list(1) = i
-            v_list(2) = j
-            v_list(3:6) = pack( v_index, pair_list )
-            opp_ion = pack( (/4,5,6/) ,.not.part( v_list(3) )%neigh( v_list(4:6) ) )
-            if ( all( (/4,5,6/) .ne. opp_ion(1) ) ) then ! octahedron is probably constructed from four face-sharing tetrahedra
-                write(6,*) "Opposing vertices in this octahedron are too close"
-                write(6,*) "Ions: ", v_list
-                stop
-            end if
-            call swap( v_list, 4, opp_ion(1) )
-            ! test that all points are topologically equivalent (if not, assume
-            ! we have a false positive identification)
-            if (     count( part(v_list(3))%neigh(v_list) .and. part(v_list(4))%neigh(v_list) ) /= 4 &
-                .or. count( part(v_list(5))%neigh(v_list) .and. part(v_list(6))%neigh(v_list) ) /= 4 ) cycle 
-            if ( .not. oct_exists( v_list, octa( 1:noct ) ) ) then
-                noct = noct + 1
-                if ( noct > noct_max ) then
-                    stop( 'Found too many octahedra. Maybe decrease the cutoff?' )
+if ( noct_max > 0 ) then
+    write(6,*) 'searching for octahedra'
+    ! find octahedra, list of ions are arranged in pairs of opposite vertices (1,2)(3,4)(5,6)
+    do i=1, natoms-1 
+        do j=i+1, natoms
+            if ( part(i)%neigh(j) ) cycle
+            pair_list = ( part(i)%neigh .and. part(j)%neigh )
+            if ( count(pair_list) .eq. 4 ) then
+                v_list(1) = i
+                v_list(2) = j
+                v_list(3:6) = pack( v_index, pair_list )
+                opp_ion = pack( (/4,5,6/) ,.not.part( v_list(3) )%neigh( v_list(4:6) ) )
+                if ( all( (/4,5,6/) .ne. opp_ion(1) ) ) then ! octahedron is probably constructed from four face-sharing tetrahedra
+                    write(6,*) "Opposing vertices in this octahedron are too close"
+                    write(6,*) "Ions: ", v_list
+                    stop
                 end if
-                associate( oct => octa(noct) )
-                    call oct%init
-                    p_list = part( v_list )
-                    call oct%set_vertices( p_list )
-                end associate
+                call swap( v_list, 4, opp_ion(1) )
+                ! test that all points are topologically equivalent (if not, assume
+                ! we have a false positive identification)
+                if (     count( part(v_list(3))%neigh(v_list) .and. part(v_list(4))%neigh(v_list) ) /= 4 &
+                    .or. count( part(v_list(5))%neigh(v_list) .and. part(v_list(6))%neigh(v_list) ) /= 4 ) cycle 
+                if ( .not. oct_exists( v_list, octa( 1:noct ) ) ) then
+                    noct = noct + 1
+                    if ( noct > noct_max ) then
+                        stop( 'Found more octahedra than expected.' )
+                    end if
+                    associate( oct => octa(noct) )
+                        call oct%init
+                        p_list = part( v_list )
+                        call oct%set_vertices( p_list )
+                    end associate
+                end if
             end if
-        end if
+        end do
     end do
-end do
-
-write(6,*) noct, 'octahedra found'
+    write(6,*) noct, 'octahedra found'
+endif
 
 do i=1, ntet
     call tetra(i)%enforce_pbc
@@ -206,26 +209,39 @@ subroutine write_output( tetra, octa )
     integer :: ftet1_cent, ftet2_cent, foct_cent, ftet1, ftet2, foct
     integer i
 
-    open(file='tet1_c.out', newunit=ftet1_cent, form='formatted')
-    open(file='tet2_c.out', newunit=ftet2_cent, form='formatted')
-    open(file='oct_c.out', newunit=foct_cent, form='formatted')
-    open(file='tet1.list', newunit=ftet1, form='formatted')
-    open(file='tet2.list', newunit=ftet2, form='formatted')
-    open(file='oct.list', newunit=foct, form='formatted')
+    if ( ntet > 0 ) then
+        if ( cp_tet_assign ) then
+            open(file='tet_up_c.out', newunit=ftet1_cent, form='formatted')
+            open(file='tet_down_c.out', newunit=ftet2_cent, form='formatted')
+            open(file='tet_up.list', newunit=ftet1, form='formatted')
+            open(file='tet_down.list', newunit=ftet2, form='formatted')
+        else
+            open(file='tet_c.out', newunit=ftet1_cent, form='formatted')
+            open(file='tet.list', newunit=ftet1, form='formatted')
+        endif
+    endif
+    if ( noct > 0 ) then
+        open(file='oct_c.out', newunit=foct_cent, form='formatted')
+        open(file='oct.list', newunit=foct, form='formatted')
+    endif
 
     do i=1, size(tetra)    
-        if (tetra(i)%orientation == 1) then
-            ntet_up = ntet_up + 1
+        if ( cp_tet_assign ) then
+            if (tetra(i)%orientation == 1) then
+                ntet_up = ntet_up + 1
+                write(ftet1,*) tetra(i)%vertex%id
+                write(ftet1_cent,*) tetra(i)%centre
+            else
+                ntet_down = ntet_down + 1
+                write(ftet2,*) tetra(i)%vertex%id
+                write(ftet2_cent,*) tetra(i)%centre
+            end if
+        else
             write(ftet1,*) tetra(i)%vertex%id
             write(ftet1_cent,*) tetra(i)%centre
-        else
-            ntet_down = ntet_down + 1
-            write(ftet2,*) tetra(i)%vertex%id
-            write(ftet2_cent,*) tetra(i)%centre
-        end if
+        endif
     end do
 
-    write(6,*) size( octa )
     do i=1, size(octa)
         write(foct,*) octa(i)%vertex%id
         write(foct_cent,*) octa(i)%centre
@@ -238,18 +254,22 @@ subroutine write_output( tetra, octa )
     close(ftet2)
     close(foct)
 
-    write(6,*) ntet_up,'tet1',ntet_down,'tet2',noct,'oct'
-
+    if ( cp_tet_assign ) then
+        write(6,*) ntet_up,'tet1',ntet_down,'tet2',noct,'oct'
+    endif
+ 
 end subroutine write_output
     
 end program find_polyhedra
 
-subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
+subroutine read_input( inptfile, posfile, natoms, ntet_max, noct_max, &
+                       cboxlen, rcut, h, cp_tet_assign, cpplane )
     implicit none
     double precision, dimension(3), intent(out) :: cboxlen, cpplane
     character(len=30), intent(out) :: posfile
     character(len=*), intent(in) :: inptfile
-    integer, intent(out) :: natoms
+    integer, intent(out) :: natoms, ntet_max, noct_max
+    logical, intent(out) :: cp_tet_assign
     double precision, intent(out) :: rcut
     double precision, intent(out) :: h(3,3)
     integer :: fin
@@ -257,11 +277,19 @@ subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
     open(file=inptfile, status='old', form='formatted', newunit=fin)
         read(fin,*) posfile
         read(fin,*) natoms
+        read(fin,*) ntet_max
+        read(fin,*) noct_max
         read(fin,*) cboxlen(1:3)
         read(fin,*) h(1:3,1:3)
-        read(fin,*) cpplane(1:3)
         read(fin,*) rcut
+        read(fin,*) cp_tet_assign
+        if ( cp_tet_assign ) then
+            read(fin,*) cpplane(1:3)
+        else
+            cpplane = (/ 0.0, 0.0, 0.0 /)
+        endif
     close(fin)
+
 end subroutine read_input
  
 function diagonal( square_matrix )
