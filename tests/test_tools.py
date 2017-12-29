@@ -33,4 +33,4 @@ def run_integration_test( data_path, executable ):
     for of in output_files:
         expected_data = np.loadtxt( os.path.join( output_src, of ) )
         calculated_data = np.loadtxt( os.path.join( test_dir, of ) )
-        np.testing.assert_array_equal( expected_data, calculated_data )
+        np.testing.assert_array_almost_equal( expected_data, calculated_data )

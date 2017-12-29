@@ -1,0 +1,9 @@
+initial_positions.xyz
+192 natoms
+20.3123110900 20.3123110900 20.3123110900
+1.0 0.0 0.0
+0.0 1.0 0.0
+0.0 0.0 1.0
+0.0 0.0 1.0 close-packed vector (this should be ignored)
+4.0 rcut
+
