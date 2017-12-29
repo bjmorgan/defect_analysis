@@ -1,0 +1,22 @@
+poscart.out
+cell_matrix.out
+tet.list
+oct.list
+sph.list
+10        nsteps
+4           nspec
+768         natoms
+192         natoms
+128         natoms
+448         natoms
+1           species identity that makes up tetrahedral lattice
+4           species identity of mobile ions
+0       ntet
+0       noct
+1         nsph
+.false.     variable cell
+  49.81007063       49.79930828       48.57409755
+1.0 0.0 0.0
+0.0 1.0 0.0
+0.0 0.0 1.0
+
