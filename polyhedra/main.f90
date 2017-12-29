@@ -11,19 +11,17 @@ type (atom), dimension(:), allocatable :: part
 type (octahedron), dimension(:), allocatable :: octa
 type (tetrahedron), dimension(:), allocatable :: tetra
 character(len=30) :: posfile, inptfile
-integer :: natoms, i, j, k, l, m, n, v, fout, dotprod, temp
+integer :: natoms, i, j, k, l, temp
 integer :: fin
 integer, dimension(:), allocatable :: v_mask, v_index
 integer, dimension(6) :: v_list
 type(atom), dimension(6) :: p_list
 double precision :: rcut, rcutsq ! minimum, maximum
-double precision :: rij(3), rij_direct(3), rijsq
+double precision :: rij(3), rij_direct(3)
 logical, dimension(:), allocatable :: pair_list
 integer, dimension(1) :: opp_ion
 double precision, dimension(:), allocatable :: rijsq_store
-integer, dimension(13) :: nearest_neighbours
 integer :: ntet_max, noct_max
-type(atom), dimension(4) :: equatorial_vertices
 
 interface
 
