@@ -1,5 +1,5 @@
 OBJS=main.o cell.o atoms.o polyhedra.o octahedra.o tetrahedra.o
-EXECUTABLE=polyhedra
+EXECUTABLE=find_polyhedra
 FC=ifort
 BINDIR=../bin
 

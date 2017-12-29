@@ -4,7 +4,7 @@ make clean
 make debug FC="$FC" FFLAGS="$FFLAGS"
 cd ../tests
 
-cd ../polyhedra
+cd ../find_polyhedra
 make clean
 make debug FC="$FC" FFLAGS="$FFLAGS"
 cd ../tests

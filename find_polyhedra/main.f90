@@ -57,7 +57,7 @@ interface
 
 end interface
 
-inptfile = "polyhedra.inpt"
+inptfile = "find_polyhedra.inpt"
 call read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
 
 rcutsq = rcut * rcut
