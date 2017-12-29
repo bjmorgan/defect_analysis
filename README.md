@@ -9,7 +9,7 @@ This repository contains software tools for analysing crystal structures and mol
 - `chains.rb`.
 - `defectid`
 - `polyhedra`: Analyses a crystal structure to find polyhedra defined by a sub-lattice.
-- `defect_sort`
+- `siteid`: Assigns mobile ions to volumetric sites in a structure.
 - `site_occupation.rb`
 - `site_site`
 - `vacancy_sort`
