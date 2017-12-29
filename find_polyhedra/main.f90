@@ -30,11 +30,6 @@ interface
         double precision, dimension( size(square_matrix, 1) ) :: diagonal
     end function diagonal
 
-!    pure function ortho_pbc( r, boxlen )
-!        double precision, dimension(3), intent(in) :: r, boxlen
-!        double precision, dimension(3) :: ortho_pbc
-!    end function ortho_pbc
-
     subroutine read_input( inptfile, posfile, natoms, cboxlen, rcut, h, cpplane )
         double precision, dimension(3), intent(out) :: cboxlen, cpplane
         character(len=30), intent(out) :: posfile
