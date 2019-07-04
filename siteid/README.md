@@ -21,7 +21,18 @@ TODO: document what inputs are needed.
 TODO: Other inputs? At present:
 - file containing list of Cartesian coordinates (e.g. `poscart.out`)
 - file containing list of cell geometries (cell lengths and matrices) (e.g. `cell_matrix.out`)
-- input files that define polyhedra (e.g. `tet.list` and `oct.list`)
+- input files that define polyhedra (e.g. `tet.list` and `oct.list`).
+
+### `oct.list` and `tet.list`
+
+The `*.list` input files define polyhedra of each type (octahedra and tetrahedra). Each line in the file contains N integers corresponding to the atom index for the vertices of that polyhedron. e.g. for tetrahedra:
+```
+1 2 3 4
+1 2 5 6
+1 3 7 8
+…
+```
+Note that the index for each species in `siteid` counts from 1.
 
 ### example input
 
@@ -31,6 +42,7 @@ poscart-t-LLZO.out
 cell_matrix.out
 tet.list
 oct.list
+sph.list
 9200      nsteps
 4         nspec
 768       natoms
@@ -41,6 +53,7 @@ oct.list
 4         species identity of mobile ions
 960       ntet
 512       noct
+0         nsph
 .false.   variable cell
   49.81007063       49.79930828       48.57409755
 1.0 0.0 0.0
@@ -74,54 +87,3 @@ TODO: Addition of spherical site types (as fixed coordinates / centroids of sets
 4. B. J. Morgan and P. A. Madden &ldquo;Relationships Between Atomic Diffusion Mechanisms and Ensemble Transport Coefficients in Crystalline Polymorphs&rqduo; Phys. Rev. Lett. **112** 145901 (2014).
 5. M. Burbano, D. Carlier, F. Boucher, B. J. Morgan, and M. Salanne, &ldquo;Sparse Cyclic Excitations Explain the Low Ionic Conductivity of Stoichiometric Li<sub>7</sub>La<sub>3</sub>Zr<sub>2</sub>O<sub>12</sub>&rqduo; Phys. Rev. Lett. **116** 135901 (2016).
 
-## inputs
-`polyhedra.inpt`    input parameters (see below)
-<coordinate file>   list of (x,y,z) Cartesian coordinates for the lattice ions
-
-## example input
-
-`<coordinates file>`  name of file containg the lattice ion (x,y,z) Cartesian coordinates.
-`<natoms>`            number of lattice ions (number of entries in <coordinates file>).
-`<cell_x, cell_y, cell_z>` cell lengths.
-`<h (3,3)>`           (3x3) cell matrix of unit vectors for cell axes (as matrix rows).
-`<x, y, z>`           vector along "close-packed" direction. Used to define the relative 
-                    orientation of "up" and "down" oriented tetrahedra. 
-`<r_cut>`             cutoff radius for constructing ion neighbour lists.
-
-e.g.
-
-```
-initial_positions.xyz
-768                  natoms
-49.06723742 49.06723742 49.06723742        
-1.0 0.0 0.0
-0.0 1.0 0.0
-0.0 0.0 1.0
-0.0 0.0 1.0          close-packed vector 
-7.5                  rcut 
-```
-
-## output
-
-### to stdout
-
-lists progress, and the numbers of tetrahedra and octahedra found, e.g.
-
-```
- Creating neighbour lists
- searching for tetrahedra
- 960 tetrahedra found
- searching for octahedra
- 512 octahedra found
- 512
- 960 tet1 0 tet2 512 oct
-```
-
-### output files
-
-`oct.list`    Ion numbers defining the vertices of each octahedron
-`tet1.list`   Ion numbers defining the vertices of each tetrahedron in set 1 (pointing "up")
-`tet2.list`   Ion numbers defining the vertices of each tetrahedraon in set 2 (pointing "down")
-`oct_c.out`   Cartesian coordinates of the centres of each octahedron
-`tet1_c.out`  Cartesian coordinates of the centres of each tetrahedron in set 1 (pointing "up")
-`tet2_c.out`  Cartesian coordinates of the centres of each tetrahedron in set 2 (pointing "down")
